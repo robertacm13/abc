@@ -1,0 +1,109 @@
+/*o tara care se numeste romania
+avem de facut un arbore care sa contina toate orasele din tara resp
+dintr un fisier
+si sa aiba detalii de genul : distanta fata de un alt oras parinte, populatie, suprafata si risc
+o functie care parcurge in inordine arborele si gaseste orasul cu rsicul maxim de invadare
+risc = dist fata de radacina * suprafata orasului - suma suprafetelor din orasele pe care le am parcurs pana am ajuns la orasul pt care calc riscul
+de afisat toate orasele*/
+#include <stdio.h>
+#include <stdlib.h>
+struct Oras {
+    char nume[50];
+    int distantaFataDeParinte;
+    int populatie;
+    int suprafata;
+    int risc;
+    struct Oras* left, * right;
+};
+
+struct Oras* creareOras(char nume[], int distanta, int populatie, int suprafata) {
+    struct Oras* nod = (struct Oras*)malloc(sizeof(struct Oras));
+    strcpy(nod->nume, nume);
+    nod->distantaFataDeParinte = distanta;
+    nod->populatie = populatie;
+    nod->suprafata = suprafata;
+    nod->risc = 0;
+    nod->left = nod->right = NULL;
+    return nod;
+}
+
+struct Oras* adaugaOras(struct Oras* root, char nume[], int distanta, int populatie, int suprafata) {
+    if (root == NULL) {
+        return creareOras(nume, distanta, populatie, suprafata);
+    }
+
+    if (strcmp(nume, root->nume) < 0) {
+        root->left = adaugaOras(root->left, nume, distanta, populatie, suprafata);
+    }
+    else if (strcmp(nume, root->nume) > 0) {
+        root->right = adaugaOras(root->right, nume, distanta, populatie, suprafata);
+    }
+
+    return root;
+}
+
+void afiseazaInordine(struct Oras* root) {
+    if (root != NULL) {
+        afiseazaInordine(root->left);
+        printf("Oras: %s, Distanta fata de parinte: %d, Populatie: %d, Suprafata: %d, Risc: %d\n",
+            root->nume, root->distantaFataDeParinte, root->populatie, root->suprafata, root->risc);
+        afiseazaInordine(root->right);
+    }
+}
+
+int calculeazaRisc(struct Oras* root) {
+    if (root == NULL) {
+        return 0;
+    }
+
+    int sumaSuprafete = root->suprafata + calculeazaRisc(root->left) + calculeazaRisc(root->right);
+    root->risc = root->distantaFataDeParinte * root->suprafata - sumaSuprafete;
+
+    return sumaSuprafete;
+}
+
+void gasesteOrasCuMaximulDeRisc(struct Oras* root, struct Oras** orasMaxim) {
+    if (root != NULL) {
+        gasesteOrasCuMaximulDeRisc(root->left, orasMaxim);
+        if (root->risc > (*orasMaxim)->risc) {
+            *orasMaxim = root;
+        }
+        gasesteOrasCuMaximulDeRisc(root->right, orasMaxim);
+    }
+}
+
+int main() {
+    struct Oras* radacina = NULL;
+    char nume[50];
+    int distantaFataDeParinte;
+    int populatie;
+    int suprafata;
+    int risc;
+    //citim din fisier
+    FILE* f;
+    f = fopen("fisier.txt", "r"); 
+    if (f == NULL) {
+        printf("Eroare!!\n");
+        return 1; 
+    }
+    //adaugam un oras
+    while (fscanf(f, "%s %d %d %d", nume, &distantaFataDeParinte, &populatie, &suprafata) == 4) {
+        radacina = adaugaOras(radacina, nume, distantaFataDeParinte, populatie, suprafata);
+    }
+    //inchidem fisierul
+    fclose(f); 
+    //calculam riscul
+    calculeazaRisc(radacina);
+    //se afiseaza orasele in inordine
+    printf("Toate orasele in inordine:\n");
+    afiseazaInordine(radacina);
+    ///se calculeaza riscul maxim si se afiseaza apoi orasul cu riscul maxim
+    struct Oras* orasMaxim = radacina;
+    gasesteOrasCuMaximulDeRisc(radacina, &orasMaxim);
+    printf("\nOrasul cu cel mai mare risc de invadare:\n");
+    printf("Oras: %s, Distanta fata de parinte: %d, Populatie: %d, Suprafata: %d, Risc: %d\n",
+        orasMaxim->nume, orasMaxim->distantaFataDeParinte, orasMaxim->populatie,
+        orasMaxim->suprafata, orasMaxim->risc);
+
+    return 0;
+}
